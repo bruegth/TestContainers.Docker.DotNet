@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Docker.DotNet.X509;
@@ -37,13 +38,14 @@ public sealed class TestFixture : Progress<JSONMessage>, IAsyncLifetime, IDispos
 
         try
         {
+            var tempDir = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
 #if NET9_0_OR_GREATER
-            var credentials = new CertificateCredentials(X509CertificateLoader.LoadPkcs12FromFile("/tmp/certs/client.pfx", ""))
+            var credentials = new CertificateCredentials(X509CertificateLoader.LoadPkcs12FromFile(Path.Combine(tempDir, "certs", "client.pfx"), ""))
             {
                 ServerCertificateValidationCallback = ValidateServerCertificate
             };
 #else
-            var credentials = new CertificateCredentials(new X509Certificate2("/tmp/certs/client.pfx", ""))
+            var credentials = new CertificateCredentials(new X509Certificate2(Path.Combine(tempDir, "certs", "client.pfx"), ""))
             {
                 ServerCertificateValidationCallback = ValidateServerCertificate
             };

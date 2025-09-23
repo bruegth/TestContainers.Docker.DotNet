@@ -16,7 +16,6 @@ jobs:
           - 2375:2375
         options: >-
           --privileged
-          --tmpfs /var/lib/docker
 
       # Docker with TLS (secure TCP)
       docker-tls:
@@ -27,9 +26,8 @@ jobs:
           - 2376:2376
         options: >-
           --privileged
-          --tmpfs /var/lib/docker
         volumes:
-          - /tmp/certs:/certs
+          - ${{ github.workspace }}/certs:/certs
 
     strategy:
       matrix:
@@ -50,28 +48,28 @@ jobs:
 
       - name: Generate TLS certs for Docker
         run: |
-          mkdir -p /tmp/certs
+          mkdir -p ${{ github.workspace }}/certs
 
           # Generate CA key and cert
-          openssl genrsa -out /tmp/certs/ca-key.pem 2048
-          openssl req -x509 -new -nodes -key /tmp/certs/ca-key.pem -sha256 -days 365 -out /tmp/certs/ca.pem -subj "/CN=docker-ca"
+          openssl genrsa -out ${{ github.workspace }}/certs/ca-key.pem 2048
+          openssl req -x509 -new -nodes -key ${{ github.workspace }}/certs/ca-key.pem -sha256 -days 365 -out ${{ github.workspace }}/certs/ca.pem -subj "/CN=docker-ca"
 
           # Generate server key and CSR
-          openssl genrsa -out /tmp/certs/server-key.pem 2048
-          openssl req -new -key /tmp/certs/server-key.pem -out /tmp/certs/server.csr -subj "/CN=localhost"
+          openssl genrsa -out ${{ github.workspace }}/certs/server-key.pem 2048
+          openssl req -new -key ${{ github.workspace }}/certs/server-key.pem -out ${{ github.workspace }}/certs/server.csr -subj "/CN=localhost"
 
           # Sign server cert with CA
-          openssl x509 -req -in /tmp/certs/server.csr -CA /tmp/certs/ca.pem -CAkey /tmp/certs/ca-key.pem -CAcreateserial -out /tmp/certs/server-cert.pem -days 365 -sha256
+          openssl x509 -req -in ${{ github.workspace }}/certs/server.csr -CA ${{ github.workspace }}/certs/ca.pem -CAkey ${{ github.workspace }}/certs/ca-key.pem -CAcreateserial -out ${{ github.workspace }}/certs/server-cert.pem -days 365 -sha256
 
           # Generate client key and CSR
-          openssl genrsa -out /tmp/certs/key.pem 2048
-          openssl req -new -key /tmp/certs/key.pem -out /tmp/certs/client.csr -subj "/CN=client"
+          openssl genrsa -out ${{ github.workspace }}/certs/key.pem 2048
+          openssl req -new -key ${{ github.workspace }}/certs/key.pem -out ${{ github.workspace }}/certs/client.csr -subj "/CN=client"
 
           # Sign client cert with CA
-          openssl x509 -req -in /tmp/certs/client.csr -CA /tmp/certs/ca.pem -CAkey /tmp/certs/ca-key.pem -CAcreateserial -out /tmp/certs/cert.pem -days 365 -sha256
+          openssl x509 -req -in ${{ github.workspace }}/certs/client.csr -CA ${{ github.workspace }}/certs/ca.pem -CAkey ${{ github.workspace }}/certs/ca-key.pem -CAcreateserial -out ${{ github.workspace }}/certs/cert.pem -days 365 -sha256
 
           # create pfx
-          openssl pkcs12 -export -out /tmp/certs/client.pfx -inkey /tmp/certs/key.pem -in /tmp/certs/cert.pem -certfile /tmp/certs/ca.pem -passout pass:
+          openssl pkcs12 -export -out ${{ github.workspace }}/certs/client.pfx -inkey ${{ github.workspace }}/certs/key.pem -in ${{ github.workspace }}/certs/cert.pem -certfile ${{ github.workspace }}/certs/ca.pem -passout pass:
 
       - name: Wait for Docker (no TLS) to be healthy
         run: |
@@ -90,9 +88,9 @@ jobs:
         run: |
           for i in {1..10}; do
             if docker --host=tcp://localhost:2376 --tlsverify \
-              --tlscacert=/tmp/certs/ca.pem \
-              --tlscert=/tmp/certs/cert.pem \
-              --tlskey=/tmp/certs/key.pem version; then
+              --tlscacert=${{ github.workspace }}/certs/ca.pem \
+              --tlscert=${{ github.workspace }}/certs/cert.pem \
+              --tlskey=${{ github.workspace }}/certs/key.pem version; then
               echo "Docker (TLS) is ready!"
               exit 0
             fi
