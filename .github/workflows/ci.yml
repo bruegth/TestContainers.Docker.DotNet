@@ -2,9 +2,6 @@ name: CI
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
@@ -16,8 +13,11 @@ jobs:
           DOCKER_TLS_CERTDIR: ""
         ports:
           - 2375:2375
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
         options: >-
           --privileged
+          --tmpfs /var/lib/docker
           --health-cmd "docker info || exit 1"
           --health-interval 10s
           --health-timeout 5s
