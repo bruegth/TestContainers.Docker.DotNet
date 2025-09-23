@@ -37,14 +37,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: test
           fetch-depth: 0
-
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.x
       - name: Build
         run: dotnet build -c Release --framework ${{ matrix.framework }}
+        working-directory: test
 
       - name: Generate TLS certs for Docker
         run: |
@@ -102,3 +103,4 @@ jobs:
 
       - name: Test
         run: dotnet test -c Release --framework ${{ matrix.framework }} --no-build --logger console
+        working-directory: test
