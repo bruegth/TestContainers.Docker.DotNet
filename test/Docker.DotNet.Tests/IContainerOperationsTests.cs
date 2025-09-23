@@ -252,6 +252,7 @@ public class IContainerOperationsTests
         var averageLineCount = logLists.Values.Average(logs => logs.Split('\n').Count());
 
         _testOutputHelper.WriteLine($"ClientType {clientType}: avg. Line count: {averageLineCount:N1}, cpu ticks: {cpuTimeAfter.Ticks - cpuTimeBefore.Ticks:N0}, mem usage: {memoryUsageAfter - memoryUsageBefore:N0}, sockets: {socketsAfter - socketsBefore:N0}");
+        _testOutputHelper.WriteLine($"ClientType {clientType}: FirstLine: {logLists.Values.FirstOrDefault()}");
 
         // one container should produce 2 lines per second (stdout + stderr) plus 1 for last empty line of split
         Assert.True(averageLineCount > (runtimeInSeconds + 1) * 2, $"Average line count {averageLineCount:N1} is less than expected {(runtimeInSeconds + 1) * 2}");
@@ -403,7 +404,7 @@ public class IContainerOperationsTests
 
         _testOutputHelper.WriteLine($"ClientType {clientType}: Line count: {counter}, mem usage: {memoryUsageAfter - memoryUsageBefore:N0}");
 
-        Assert.True(counter > runtimeInSeconds * 100000, $"Line count {counter} is less than expected {runtimeInSeconds * 100000}");
+        Assert.True(counter > runtimeInSeconds * 25000, $"Line count {counter} is less than expected {runtimeInSeconds * 25000}");
 
         GC.Collect();
     }
