@@ -50,6 +50,7 @@ jobs:
       - name: Generate TLS certs for Docker
         run: |
           mkdir -p ${{ github.workspace }}/certs
+          sudo chmod 777 ${{ github.workspace }}/certs
 
           # Generate CA key and cert
           openssl genrsa -out ${{ github.workspace }}/certs/ca-key.pem 2048
