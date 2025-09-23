@@ -5,23 +5,32 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     services:
-      docker:
+      # Docker without TLS (plain TCP) !DEPRECATED! with next docker release
+      docker-no-tls:
         image: docker:28.1-dind
         env:
           DOCKER_TLS_CERTDIR: ""
         ports:
           - 2375:2375
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
         options: >-
           --privileged
           --tmpfs /var/lib/docker
-          --health-cmd "docker info || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+
+      # Docker with TLS (secure TCP)
+      docker-tls:
+        image: docker:28.1-dind
+        env:
+          DOCKER_TLS_CERTDIR: /certs
+        ports:
+          - 2376:2376
+        options: >-
+          --privileged
+          --tmpfs /var/lib/docker
+        volumes:
+          - /tmp/certs:/certs
+
     strategy:
       matrix:
         framework:
@@ -31,11 +40,70 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.x
       - name: Build
         run: dotnet build -c Release --framework ${{ matrix.framework }}
+
+      - name: Generate TLS certs for Docker
+        run: |
+          mkdir -p /tmp/certs
+
+          # Generate CA key and cert
+          openssl genrsa -out /tmp/certs/ca-key.pem 2048
+          openssl req -x509 -new -nodes -key /tmp/certs/ca-key.pem -sha256 -days 365 -out /tmp/certs/ca.pem -subj "/CN=docker-ca"
+
+          # Generate server key and CSR
+          openssl genrsa -out /tmp/certs/server-key.pem 2048
+          openssl req -new -key /tmp/certs/server-key.pem -out /tmp/certs/server.csr -subj "/CN=localhost"
+
+          # Sign server cert with CA
+          openssl x509 -req -in /tmp/certs/server.csr -CA /tmp/certs/ca.pem -CAkey /tmp/certs/ca-key.pem -CAcreateserial -out /tmp/certs/server-cert.pem -days 365 -sha256
+
+          # Generate client key and CSR
+          openssl genrsa -out /tmp/certs/key.pem 2048
+          openssl req -new -key /tmp/certs/key.pem -out /tmp/certs/client.csr -subj "/CN=client"
+
+          # Sign client cert with CA
+          openssl x509 -req -in /tmp/certs/client.csr -CA /tmp/certs/ca.pem -CAkey /tmp/certs/ca-key.pem -CAcreateserial -out /tmp/certs/cert.pem -days 365 -sha256
+
+          # Copy certs for Docker
+          cp /tmp/certs/ca.pem /tmp/certs/server-cert.pem /tmp/certs/server-key.pem /tmp/certs/cert.pem /tmp/certs/key.pem /tmp/certs/
+
+          # Clean up
+          rm /tmp/certs/*.csr /tmp/certs/ca-key.pem
+
+      - name: Wait for Docker (no TLS) to be healthy
+        run: |
+          for i in {1..10}; do
+            if docker --host=tcp://localhost:2375 version; then
+              echo "Docker (no TLS) is ready!"
+              exit 0
+            fi
+            echo "Waiting for Docker (no TLS) to be ready..."
+            sleep 3
+          done
+          echo "Docker (no TLS) did not become ready in time."
+          exit 1
+
+      - name: Wait for Docker (with TLS) to be healthy
+        run: |
+          for i in {1..10}; do
+            if docker --host=tcp://localhost:2376 --tlsverify \
+              --tlscacert=/tmp/certs/ca.pem \
+              --tlscert=/tmp/certs/cert.pem \
+              --tlskey=/tmp/certs/key.pem version; then
+              echo "Docker (TLS) is ready!"
+              exit 0
+            fi
+            echo "Waiting for Docker (TLS) to be ready..."
+            sleep 3
+          done
+          echo "Docker (TLS) did not become ready in time."
+          exit 1
+
       - name: Test
         run: dotnet test -c Release --framework ${{ matrix.framework }} --no-build --logger console
