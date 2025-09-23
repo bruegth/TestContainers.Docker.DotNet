@@ -245,13 +245,15 @@ public class ISystemOperationsTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(_testFixture.Cts.Token);
         var task = Task.Run(() => _testFixture.DockerClients[clientType].System.MonitorEventsAsync(eventsParams, progress, cts.Token));
 
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
         await _testFixture.DockerClients[clientType].Images.TagImageAsync($"{_testFixture.Repository}:{_testFixture.Tag}", new ImageTagParameters { RepositoryName = _testFixture.Repository, Tag = newTag });
         await _testFixture.DockerClients[clientType].Images.DeleteImageAsync($"{_testFixture.Repository}:{newTag}", new ImageDeleteParameters());
 
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(new CreateContainerParameters { Image = $"{_testFixture.Repository}:{_testFixture.Tag}", Entrypoint = CommonCommands.SleepInfinity });
         await _testFixture.DockerClients[clientType].Containers.RemoveContainerAsync(createContainerResponse.ID, new ContainerRemoveParameters(), cts.Token);
 
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        await Task.Delay(TimeSpan.FromSeconds(1));
         await cts.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
