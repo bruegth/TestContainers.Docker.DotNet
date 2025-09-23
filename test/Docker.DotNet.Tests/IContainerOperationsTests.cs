@@ -17,18 +17,16 @@ public class IContainerOperationsTests
     }
 
     public static IEnumerable<object[]> GetDockerClientTypes() =>
-        Enum.GetValues(typeof(DockerClientType))
-            .Cast<DockerClientType>()
-            .Select(t => new object[] { t });
+        TestFixture.GetDockerClientTypes();
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task CreateContainerAsync_CreatesContainer(DockerClientType clientType)
+    public async Task CreateContainerAsync_CreatesContainer(TestClientsEnum clientType)
     {
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr
             },
             _testFixture.Cts.Token
@@ -40,14 +38,14 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Tty_False_Follow_True_TaskIsCompleted(DockerClientType clientType)
+    public async Task GetContainerLogs_Tty_False_Follow_True_TaskIsCompleted(TestClientsEnum clientType)
     {
         using var containerLogsCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = false
             },
@@ -86,14 +84,14 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Tty_False_Follow_False_ReadsLogs(DockerClientType clientType)
+    public async Task GetContainerLogs_Tty_False_Follow_False_ReadsLogs(TestClientsEnum clientType)
     {
         var logList = new List<string>();
 
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = false
             },
@@ -134,7 +132,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Parallel_Tty_False_Follow_False_ReadsLogs(DockerClientType clientType)
+    public async Task GetContainerLogs_Parallel_Tty_False_Follow_False_ReadsLogs(TestClientsEnum clientType)
     {
         using var containerLogsCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
@@ -164,7 +162,7 @@ public class IContainerOperationsTests
             var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
                 new CreateContainerParameters
                 {
-                    Image = _testFixture.Image.ID,
+                    Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                     Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                     Tty = false
                 },
@@ -246,7 +244,7 @@ public class IContainerOperationsTests
                                 .GetTcpIPv4Statistics()
                                 .CurrentConnections;
 
-        if (clientType == DockerClientType.ManagedPipe)
+        if (clientType == TestClientsEnum.ManagedPipe)
             socketsAfter = socketsBefore = 0;
 
         long memoryUsageAfter = GC.GetTotalAllocatedBytes(true);
@@ -262,14 +260,14 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Tty_True_Follow_False_ReadsLogs(DockerClientType clientType)
+    public async Task GetContainerLogs_Tty_True_Follow_False_ReadsLogs(TestClientsEnum clientType)
     {
         var logList = new List<string>();
 
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = true
             },
@@ -310,14 +308,14 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Tty_False_Follow_True_Requires_Task_To_Be_Cancelled(DockerClientType clientType)
+    public async Task GetContainerLogs_Tty_False_Follow_True_Requires_Task_To_Be_Cancelled(TestClientsEnum clientType)
     {
         using var containerLogsCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = false
             },
@@ -348,7 +346,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_SpeedTest_Tty_False_Follow_True_Requires_Task_To_Be_Cancelled(DockerClientType clientType)
+    public async Task GetContainerLogs_SpeedTest_Tty_False_Follow_True_Requires_Task_To_Be_Cancelled(TestClientsEnum clientType)
     {
         using var containerLogsCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
@@ -357,7 +355,7 @@ public class IContainerOperationsTests
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderrFast,
                 Tty = false
             },
@@ -412,14 +410,14 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Tty_True_Follow_True_Requires_Task_To_Be_Cancelled(DockerClientType clientType)
+    public async Task GetContainerLogs_Tty_True_Follow_True_Requires_Task_To_Be_Cancelled(TestClientsEnum clientType)
     {
         using var containerLogsCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = true
             },
@@ -452,7 +450,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerLogs_Tty_True_Follow_True_ReadsLogs_TaskIsCancelled(DockerClientType clientType)
+    public async Task GetContainerLogs_Tty_True_Follow_True_ReadsLogs_TaskIsCancelled(TestClientsEnum clientType)
     {
         using var containerLogsCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var logList = new List<string>();
@@ -460,7 +458,7 @@ public class IContainerOperationsTests
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = true
             },
@@ -505,7 +503,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerStatsAsync_Tty_False_Stream_False_ReadsStats(DockerClientType clientType)
+    public async Task GetContainerStatsAsync_Tty_False_Stream_False_ReadsStats(TestClientsEnum clientType)
     {
         using var tcs = CancellationTokenSource.CreateLinkedTokenSource(_testFixture.Cts.Token);
         var containerStatsList = new List<ContainerStatsResponse>();
@@ -513,7 +511,7 @@ public class IContainerOperationsTests
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = false
             },
@@ -547,7 +545,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerStatsAsync_Tty_False_StreamStats(DockerClientType clientType)
+    public async Task GetContainerStatsAsync_Tty_False_StreamStats(TestClientsEnum clientType)
     {
         using var tcs = CancellationTokenSource.CreateLinkedTokenSource(_testFixture.Cts.Token);
         using (tcs.Token.Register(() => throw new TimeoutException("GetContainerStatsAsync_Tty_False_StreamStats")))
@@ -559,7 +557,7 @@ public class IContainerOperationsTests
             var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
                 new CreateContainerParameters
                 {
-                    Image = _testFixture.Image.ID,
+                    Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                     Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                     Tty = false
                 },
@@ -600,7 +598,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerStatsAsync_Tty_True_Stream_False_ReadsStats(DockerClientType clientType)
+    public async Task GetContainerStatsAsync_Tty_True_Stream_False_ReadsStats(TestClientsEnum clientType)
     {
         using var tcs = CancellationTokenSource.CreateLinkedTokenSource(_testFixture.Cts.Token);
         var containerStatsList = new List<ContainerStatsResponse>();
@@ -608,7 +606,7 @@ public class IContainerOperationsTests
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                 Tty = true
             },
@@ -642,7 +640,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task GetContainerStatsAsync_Tty_True_StreamStats(DockerClientType clientType)
+    public async Task GetContainerStatsAsync_Tty_True_StreamStats(TestClientsEnum clientType)
     {
         using var tcs = CancellationTokenSource.CreateLinkedTokenSource(_testFixture.Cts.Token);
 
@@ -653,7 +651,7 @@ public class IContainerOperationsTests
             var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
                 new CreateContainerParameters
                 {
-                    Image = _testFixture.Image.ID,
+                    Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                     Entrypoint = CommonCommands.EchoToStdoutAndStderr,
                     Tty = true
                 },
@@ -696,12 +694,12 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task KillContainerAsync_ContainerRunning_Succeeds(DockerClientType clientType)
+    public async Task KillContainerAsync_ContainerRunning_Succeeds(TestClientsEnum clientType)
     {
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr
             },
             _testFixture.Cts.Token);
@@ -735,12 +733,12 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task ListContainersAsync_ContainerExists_Succeeds(DockerClientType clientType)
+    public async Task ListContainersAsync_ContainerExists_Succeeds(TestClientsEnum clientType)
     {
         await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
             },
             _testFixture.Cts.Token);
@@ -752,7 +750,7 @@ public class IContainerOperationsTests
                 {
                     ["ancestor"] = new Dictionary<string, bool>
                     {
-                        [_testFixture.Image.ID] = true
+                        [_testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID] = true
                     }
                 },
                 All = true
@@ -766,12 +764,12 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task ListProcessesAsync_RunningContainer_Succeeds(DockerClientType clientType)
+    public async Task ListProcessesAsync_RunningContainer_Succeeds(TestClientsEnum clientType)
     {
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr
             },
             _testFixture.Cts.Token
@@ -802,12 +800,12 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task RemoveContainerAsync_ContainerExists_Succeedes(DockerClientType clientType)
+    public async Task RemoveContainerAsync_ContainerExists_Succeedes(TestClientsEnum clientType)
     {
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
             },
             _testFixture.Cts.Token
@@ -838,12 +836,12 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task StartContainerAsync_ContainerExists_Succeeds(DockerClientType clientType)
+    public async Task StartContainerAsync_ContainerExists_Succeeds(TestClientsEnum clientType)
     {
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr,
             },
             _testFixture.Cts.Token
@@ -860,7 +858,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task StartContainerAsync_ContainerNotExists_ThrowsException(DockerClientType clientType)
+    public async Task StartContainerAsync_ContainerNotExists_ThrowsException(TestClientsEnum clientType)
     {
         Task startContainerTask = _testFixture.DockerClients[clientType].Containers.StartContainerAsync(
             Guid.NewGuid().ToString(),
@@ -873,7 +871,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task WaitContainerAsync_TokenIsCancelled_OperationCancelledException(DockerClientType clientType)
+    public async Task WaitContainerAsync_TokenIsCancelled_OperationCancelledException(TestClientsEnum clientType)
     {
         using var waitContainerCts = CancellationTokenSource.CreateLinkedTokenSource(_testFixture.Cts.Token);
 
@@ -884,7 +882,7 @@ public class IContainerOperationsTests
         var createContainerResponse = await _testFixture.DockerClients[clientType].Containers.CreateContainerAsync(
             new CreateContainerParameters
             {
-                Image = _testFixture.Image.ID,
+                Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID,
                 Entrypoint = CommonCommands.EchoToStdoutAndStderr
             },
             waitContainerCts.Token
@@ -918,7 +916,7 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task CreateImageAsync_NonExistingImage_ThrowsDockerImageNotFoundException(DockerClientType clientType)
+    public async Task CreateImageAsync_NonExistingImage_ThrowsDockerImageNotFoundException(TestClientsEnum clientType)
     {
         var createContainerParameters = new CreateContainerParameters();
         createContainerParameters.Image = Guid.NewGuid().ToString("D");
@@ -930,13 +928,13 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task WriteAsync_OnMultiplexedStream_ForwardsInputToPid1Stdin_CompletesPid1Process(DockerClientType clientType)
+    public async Task WriteAsync_OnMultiplexedStream_ForwardsInputToPid1Stdin_CompletesPid1Process(TestClientsEnum clientType)
     {
         // Given
         var linefeedByte = new byte[] { 10 };
 
         var createContainerParameters = new CreateContainerParameters();
-        createContainerParameters.Image = _testFixture.Image.ID;
+        createContainerParameters.Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID;
         createContainerParameters.Entrypoint = new[] { "/bin/sh", "-c" };
         createContainerParameters.Cmd = new[] { "read line; echo Done" };
         createContainerParameters.OpenStdin = true;
@@ -968,13 +966,13 @@ public class IContainerOperationsTests
 
     [Theory]
     [MemberData(nameof(GetDockerClientTypes))]
-    public async Task WriteAsync_OnMultiplexedStream_ForwardsInputToExecStdin_CompletesExecProcess(DockerClientType clientType)
+    public async Task WriteAsync_OnMultiplexedStream_ForwardsInputToExecStdin_CompletesExecProcess(TestClientsEnum clientType)
     {
         // Given
         var linefeedByte = new byte[] { 10 };
 
         var createContainerParameters = new CreateContainerParameters();
-        createContainerParameters.Image = _testFixture.Image.ID;
+        createContainerParameters.Image = _testFixture.Images[TestFixture.GetDaemonForClient(clientType)].ID;
         createContainerParameters.Entrypoint = CommonCommands.SleepInfinity;
 
         var containerExecCreateParameters = new ContainerExecCreateParameters();

@@ -70,11 +70,8 @@ jobs:
           # Sign client cert with CA
           openssl x509 -req -in /tmp/certs/client.csr -CA /tmp/certs/ca.pem -CAkey /tmp/certs/ca-key.pem -CAcreateserial -out /tmp/certs/cert.pem -days 365 -sha256
 
-          # Copy certs for Docker
-          cp /tmp/certs/ca.pem /tmp/certs/server-cert.pem /tmp/certs/server-key.pem /tmp/certs/cert.pem /tmp/certs/key.pem /tmp/certs/
-
-          # Clean up
-          rm /tmp/certs/*.csr /tmp/certs/ca-key.pem
+          # create pfx
+          openssl pkcs12 -export -out /tmp/certs/client.pfx -inkey /tmp/certs/key.pem -in /tmp/certs/cert.pem -certfile /tmp/certs/ca.pem -passout pass:
 
       - name: Wait for Docker (no TLS) to be healthy
         run: |
