@@ -165,7 +165,7 @@ internal sealed class BufferedReadStream : WriteClosableStream, IPeekableStream
 
         var lfIndex = -1;
 
-        bool crlfFound;
+        bool crlfFound = false;
 
         do
         {
@@ -177,23 +177,27 @@ internal sealed class BufferedReadStream : WriteClosableStream, IPeekableStream
                     .ConfigureAwait(false);
             }
 
-            var c = (char)_buffer[_bufferOffset];
-            line.Append(c);
-
-            _bufferOffset++;
-            _bufferCount--;
-
-            switch (c)
+            // see https://github.com/dotnet/runtime/issues/107051
+            if (_bufferCount != 0)
             {
-                case '\r':
-                    crIndex = line.Length;
-                    break;
-                case '\n':
-                    lfIndex = line.Length;
-                    break;
-            }
+                var c = (char)_buffer[_bufferOffset];
+                line.Append(c);
 
-            crlfFound = crIndex + 1 == lfIndex;
+                _bufferOffset++;
+                _bufferCount--;
+
+                switch (c)
+                {
+                    case '\r':
+                        crIndex = line.Length;
+                        break;
+                    case '\n':
+                        lfIndex = line.Length;
+                        break;
+                }
+
+                crlfFound = crIndex + 1 == lfIndex;
+            }
         }
         while (!crlfFound);
 

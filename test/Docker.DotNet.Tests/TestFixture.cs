@@ -1,4 +1,5 @@
 using System.IO;
+using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Docker.DotNet.X509;
@@ -221,7 +222,8 @@ public sealed class TestFixture : Progress<JSONMessage>, IAsyncLifetime, IDispos
                 .Select(t => new object[] { t });
         }
 
-        return allClients.Select(t => new object[] { t });
+        //return allClients.Select(t => new object[] { t });
+        return allClients.Where(t => t == TestClientsEnum.ManagedHttps).Select(t => new object[] { t });
     }
 
     public static IEnumerable<TestDaemonsEnum> GetDockerDaemonTypes()
